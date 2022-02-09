@@ -23,6 +23,7 @@ func main() {
 
 	for {
 		transaction := <-contractWatcher.Transactions
-		fmt.Println(transaction.Parameters)
+
+		fmt.Println(tz.ParseFromTransaction(transaction))
 	}
 }

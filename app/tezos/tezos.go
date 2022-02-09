@@ -67,6 +67,5 @@ func (cw *ContractWatcher) Run(ctx context.Context) {
 				}
 			}
 		}
-
 	}
 }
