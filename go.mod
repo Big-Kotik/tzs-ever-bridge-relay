@@ -2,7 +2,10 @@ module tez-ton-bridge-relay
 
 go 1.17
 
-require blockwatch.cc/tzgo v0.11.2-0.20220115142205-baecc949f016
+require (
+	blockwatch.cc/tzgo v0.11.2-0.20220115142205-baecc949f016
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+)
 
 require (
 	github.com/decred/dcrd/dcrec/secp256k1 v1.0.3 // indirect

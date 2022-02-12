@@ -1,0 +1,10 @@
+server:
+  tezosURL: "http://localhost:20000/"
+
+tezosWallet:
+  #Alice private key, don't use it in your wallet
+  privateKey: "edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq"
+
+tezosContracts:
+  quorumAddress: "KT1KDswcMU81pJbLJfWh4JtjNXuo8fd2tbqL"
+  depositAddress: "KT1KDswcMU81pJbLJfWh4JtjNXuo8fd2tbqL"
