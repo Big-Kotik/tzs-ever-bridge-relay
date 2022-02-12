@@ -8,12 +8,14 @@ import (
 )
 
 type BlockWatcher struct {
-	client *rpc.Client
-	Hashes chan tezos.BlockHash
+	client    *rpc.Client
+	Hashes    chan tezos.BlockHash
+	lastBlock tezos.BlockHash
 }
 
 func NewBlockWatcher(client *rpc.Client) *BlockWatcher {
-	return &BlockWatcher{client, make(chan tezos.BlockHash)}
+	// TODO: Block hash
+	return &BlockWatcher{client, make(chan tezos.BlockHash), tezos.BlockHash{}}
 }
 
 func (bw *BlockWatcher) Run(ctx context.Context) {
@@ -29,9 +31,15 @@ func (bw *BlockWatcher) Run(ctx context.Context) {
 		if err != nil {
 			log.Fatalln(err)
 		}
+		log.Println(head.Hash)
 
 		bw.Hashes <- head.Hash
+		bw.lastBlock = head.Hash
 	}
+}
+
+func (bw *BlockWatcher) GetLastBlock() tezos.BlockHash {
+	return bw.lastBlock
 }
 
 type ContractWatcher struct {
