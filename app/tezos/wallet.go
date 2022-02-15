@@ -20,7 +20,8 @@ func NewWallet(client *rpc.Client, bw *BlockWatcher, key tezos.PrivateKey) *Wall
 	}
 }
 
-func (w *Wallet) SendTransaction(ctx context.Context, to tezos.Address) {
+func (w *Wallet) SendUnwrapTransaction(ctx context.Context, transaction UnwrapTransaction) {
+	//TODO: make send transaction func
 	op := codec.NewOp()
 	op = op.WithBranch(w.bw.GetLastBlock())
 
@@ -31,16 +32,17 @@ func (w *Wallet) SendTransaction(ctx context.Context, to tezos.Address) {
 		return
 	}
 
+	to := tezos.MustParseAddress(transaction.Address)
 	//TODO: add gas getter
 	trs := &codec.Transaction{
 		Manager: codec.Manager{
 			Source:   w.key.Address(),
 			Counter:  tezos.N(user.Counter + 1),
 			GasLimit: 100000,
-			Fee:      1000,
+			Fee:      10000,
 		},
 		Destination: to,
-		Amount:      100000,
+		Amount:      tezos.N(transaction.Amount),
 	}
 	op.WithContents(trs)
 
