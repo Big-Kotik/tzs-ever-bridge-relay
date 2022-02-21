@@ -1,10 +1,10 @@
 package main
 
 import (
+	"blockwatch.cc/tzgo/contract"
 	"blockwatch.cc/tzgo/rpc"
 	"blockwatch.cc/tzgo/tezos"
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	goton "github.com/move-ton/ton-client-go"
@@ -33,15 +33,28 @@ func (c *Config) GetConfigFromFile(file string) error {
 	return nil
 }
 
-func RunTezosSide(config *tz.TezosConfig) (chan *rpc.Transaction, *tz.Wallet, error) {
+type Tezos struct {
+	Client             *rpc.Client
+	Wallet             *tz.Wallet
+	QuorumContract     *tz.QuorumContract
+	DepositTransaction chan *rpc.Transaction
+}
+
+func RunTezosSide(config *tz.TezosConfig) (*Tezos, error) {
 	ctx := context.TODO()
 
 	depositAddress := tezos.MustParseAddress(config.Contracts.DepositAddress)
 
 	c, err := rpc.NewClient(config.Server.TezosURL, nil)
+
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+
+	if err = c.Init(ctx); err != nil {
+		return nil, err
+	}
+	go c.Listen()
 
 	blockWatcher := tz.NewBlockWatcher(c)
 	contractWatcher := tz.NewContractWatcher(c, blockWatcher, depositAddress)
@@ -49,42 +62,69 @@ func RunTezosSide(config *tz.TezosConfig) (chan *rpc.Transaction, *tz.Wallet, er
 	go blockWatcher.Run(ctx)
 	go contractWatcher.Run(ctx)
 
-	pk, _ := tezos.ParsePrivateKey(config.Wallet.PrivateKey)
+	pk, err := tezos.ParsePrivateKey(config.Wallet.PrivateKey)
+
+	if err != nil {
+		return nil, err
+	}
 
 	w := tz.NewWallet(c, blockWatcher, pk)
 
-	return contractWatcher.Transactions, w, nil
+	quorumAddress, err := tezos.ParseAddress(config.Contracts.QuorumAddress)
+
+	if err != nil {
+		return nil, err
+	}
+
+	contr := tz.NewQuorumContract(contract.NewContract(quorumAddress, c), w, c)
+
+	return &Tezos{
+		QuorumContract:     &contr,
+		Client:             c,
+		Wallet:             w,
+		DepositTransaction: contractWatcher.Transactions,
+	}, nil
 }
 
-func RunEverSide(config *ever.EverscaleConfig) (*goton.Ton, <-chan *domain.DecodedMessageBody) {
-	//log.Println(config.Servers)
+type Everscale struct {
+	Ton    *goton.Ton
+	Events <-chan *domain.DecodedMessageBody
+}
+
+func RunEverSide(config *ever.EverscaleConfig) (*Everscale, error) {
 	ton, err := goton.NewTon("", config.Servers)
 
 	if err != nil {
-		log.Fatalln(err)
+		return nil, err
 	}
 
-	//filter, _ := json.Marshal(json.RawMessage(`{"account_addr":{"eq":"0:15e76544085a1cd233f2caf115a08d137b6eb2301c5075cd6cb785ab48ebd85a"}}`))
+	file, err := os.Open(config.Contracts.DepositContract.ABI)
 
 	if err != nil {
-		log.Println(err)
-		return nil, nil
+		return nil, err
 	}
 
-	file, _ := os.Open(config.Contracts.DepositContract.ABI)
-	byteAbi, _ := ioutil.ReadAll(file)
+	byteAbi, err := ioutil.ReadAll(file)
+
+	if err != nil {
+		return nil, err
+	}
 
 	nn := &domain.AbiContract{}
-	json.Unmarshal(byteAbi, &nn)
+	if err = json.Unmarshal(byteAbi, &nn); err != nil {
+		return nil, err
+	}
 
 	testAbi := domain.NewAbiContract(nn)
 
-	c := ever.New(config.Contracts.DepositContract.Address, ton, testAbi)
+	c := ever.NewEventWatcher(config.Contracts.DepositContract.Address, ton, testAbi)
 
 	cs := make(chan *domain.DecodedMessageBody)
-	go c.RunWatcher(cs)
+	go c.RunWatcher(cs, func(message *domain.DecodedMessageBody) bool {
+		return message.Name == "UnwrapTokenEvent"
+	})
 
-	return ton, cs
+	return &Everscale{Events: cs, Ton: ton}, err
 }
 
 func main() {
@@ -94,40 +134,44 @@ func main() {
 		return
 	}
 
-	tezosTransChan, w, err := RunTezosSide(&config.TezosConfig)
+	tezos, err := RunTezosSide(&config.TezosConfig)
+	log.Println(tezos.Client.ChainId)
 
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	ton, collection := RunEverSide(&config.EverConfig)
+	everscale, err := RunEverSide(&config.EverConfig)
 
-	defer ton.Client.Destroy()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	defer everscale.Ton.Client.Destroy()
 
 	for {
 		select {
-		case transaction := <-tezosTransChan:
+		case transaction := <-tezos.DepositTransaction:
 			fmt.Println(tz.ParseFromTransaction(transaction))
-		case event := <-collection:
-			if event.Name == "UnwrapTokenEvent" {
-				var msg ever.UnwrapTokenEvent
-				err := json.Unmarshal(event.Value, &msg)
-				if err != nil {
-					log.Println(err)
-				}
-
-				h, err := hex.DecodeString(msg.Amount[2:])
-				if err != nil {
-					log.Println(err)
-				}
-				num := uint64(0)
-				for i, val := range h[24:] {
-					num += uint64(val) << (8 * (7 - i))
-				}
-
-				w.SendUnwrapTransaction(context.TODO(), tz.UnwrapTransaction{msg.Addr, num})
+		case event := <-everscale.Events:
+			var msg ever.UnwrapTokenEvent
+			err := json.Unmarshal(event.Value, &msg)
+			if err != nil {
+				log.Println(err)
+				continue
 			}
+
+			transaction, err := tz.NewUnwrapTransactionFromEvent(&msg)
+
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+			go tezos.QuorumContract.SendApprove(*transaction)
 		}
 	}
+
 }
