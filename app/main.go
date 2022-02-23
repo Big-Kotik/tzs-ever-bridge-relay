@@ -130,22 +130,22 @@ func RunEverSide(config *ever.EverscaleConfig) (*Everscale, error) {
 func main() {
 	config := &Config{}
 	if err := config.GetConfigFromFile("config.yaml"); err != nil {
-		log.Println(err)
+		log.Printf("err: %s\n", err)
 		return
 	}
 
-	tezos, err := RunTezosSide(&config.TezosConfig)
-	log.Println(tezos.Client.ChainId)
+	tezosClient, err := RunTezosSide(&config.TezosConfig)
+	log.Println(tezosClient.Client.ChainId)
 
 	if err != nil {
-		log.Println(err)
+		log.Printf("err: %s\n", err)
 		return
 	}
 
 	everscale, err := RunEverSide(&config.EverConfig)
 
 	if err != nil {
-		log.Println(err)
+		log.Printf("err: %s\n", err)
 		return
 	}
 
@@ -153,24 +153,24 @@ func main() {
 
 	for {
 		select {
-		case transaction := <-tezos.DepositTransaction:
+		case transaction := <-tezosClient.DepositTransaction:
 			fmt.Println(tz.ParseFromTransaction(transaction))
 		case event := <-everscale.Events:
 			var msg ever.UnwrapTokenEvent
 			err := json.Unmarshal(event.Value, &msg)
 			if err != nil {
-				log.Println(err)
+				log.Printf("err: %s\n", err)
 				continue
 			}
 
 			transaction, err := tz.NewUnwrapTransactionFromEvent(&msg)
 
 			if err != nil {
-				log.Println(err)
+				log.Printf("err: %s\n", err)
 				continue
 			}
 
-			go tezos.QuorumContract.SendApprove(*transaction)
+			go tezosClient.QuorumContract.SendApprove(*transaction)
 		}
 	}
 

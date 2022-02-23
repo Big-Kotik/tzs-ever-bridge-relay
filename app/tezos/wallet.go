@@ -20,7 +20,6 @@ func (w *Wallet) Address(ctx context.Context) (tezos.Address, error) {
 }
 
 func (w *Wallet) Key(ctx context.Context) (tezos.Key, error) {
-	log.Println(w.key.String())
 	return w.key.Public(), nil
 }
 
@@ -55,7 +54,7 @@ func (w *Wallet) SendTransaction(ctx context.Context, transaction TransactionPar
 	user, err := w.client.GetContract(ctx, w.key.Address(), w.bw.GetLastBlock())
 
 	if err != nil {
-		log.Println(err)
+		log.Printf("err: %s\n", err)
 		return
 	}
 
@@ -74,13 +73,13 @@ func (w *Wallet) SendTransaction(ctx context.Context, transaction TransactionPar
 	op.WithContents(trs)
 
 	if err := op.Sign(w.key); err != nil {
-		log.Println(err)
+		log.Printf("err: %s\n", err)
 		return
 	}
 
 	hash, err := w.client.BroadcastOperation(ctx, op.Bytes())
 	if err != nil {
-		log.Println(string(err.(rpc.HTTPError).Body()))
+		log.Printf("err: %s\n", string(err.(rpc.HTTPError).Body()))
 		return
 	}
 

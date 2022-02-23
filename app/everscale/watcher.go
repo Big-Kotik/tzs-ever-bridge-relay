@@ -26,7 +26,7 @@ func (cw *EventWatcher) RunWatcher(channel chan *domain.DecodedMessageBody, filt
 	})
 
 	if err != nil {
-		log.Println(err)
+		log.Printf("err: %s\n", err)
 		return
 	}
 
@@ -41,7 +41,7 @@ func (cw *EventWatcher) RunWatcher(channel chan *domain.DecodedMessageBody, filt
 	}
 
 	if err := json.Unmarshal(timeResult.Result, &timeStruct); err != nil {
-		log.Println(err)
+		log.Printf("err: %s\n", err)
 		return
 	}
 
@@ -56,8 +56,7 @@ func (cw *EventWatcher) RunWatcher(channel chan *domain.DecodedMessageBody, filt
 		})
 
 		if err != nil {
-			log.Println(err)
-			log.Println("here")
+			log.Printf("err: %s\n", err)
 			return
 		}
 
@@ -70,7 +69,7 @@ func (cw *EventWatcher) RunWatcher(channel chan *domain.DecodedMessageBody, filt
 
 			err := json.Unmarshal(elem, &msg)
 			if err != nil {
-				log.Println(err)
+				log.Printf("err: %s\n", err)
 			}
 
 			lastCheckTime = msg.Time
@@ -80,7 +79,7 @@ func (cw *EventWatcher) RunWatcher(channel chan *domain.DecodedMessageBody, filt
 				Abi:  cw.ABI,
 			})
 			if err != nil {
-				log.Println(err)
+				log.Printf("err: %s\n", err)
 				continue
 			}
 
