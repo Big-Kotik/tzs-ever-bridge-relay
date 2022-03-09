@@ -1,0 +1,50 @@
+{
+	"ABI version": 2,
+	"version": "2.2",
+	"header": ["pubkey", "time", "expire"],
+	"functions": [
+		{
+			"name": "constructor",
+			"inputs": [
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "unwrapToken",
+			"inputs": [
+				{"name":"addr","type":"string"},
+				{"name":"amount","type":"uint256"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "balance",
+			"inputs": [
+			],
+			"outputs": [
+				{"name":"balance","type":"uint256"}
+			]
+		}
+	],
+	"data": [
+	],
+	"events": [
+		{
+			"name": "UnwrapTokenEvent",
+			"inputs": [
+				{"name":"addr","type":"string"},
+				{"name":"amount","type":"uint256"}
+			],
+			"outputs": [
+			]
+		}
+	],
+	"fields": [
+		{"name":"_pubkey","type":"uint256"},
+		{"name":"_timestamp","type":"uint64"},
+		{"name":"_constructorFlag","type":"bool"},
+		{"name":"balance","type":"uint256"}
+	]
+}

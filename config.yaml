@@ -1,0 +1,22 @@
+tezosConfig:
+  server:
+    URL: "http://localhost:20000/"
+
+  wallet:
+    #Alice private key, don't use it in your wallet
+    privateKey: "edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq"
+
+  сontracts:
+    quorumAddress: "KT1KDswcMU81pJbLJfWh4JtjNXuo8fd2tbqL"
+    depositAddress: "KT1KDswcMU81pJbLJfWh4JtjNXuo8fd2tbqL"
+
+everscaleConfig:
+  servers:
+    - "http://localhost"
+    - "http://0.0.0.0"
+    - "http://127.0.0.1"
+
+  contracts:
+    depositContract:
+      abi: "./test.abi.json"
+      address: "0:0744a77fba05e67b848068566f3d7c78de9eb68acd6fd894937ae85bad500a81"
