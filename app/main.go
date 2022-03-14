@@ -56,11 +56,19 @@ func RunTezosSide(config *tz.TezosConfig) (*Tezos, error) {
 	}
 	go c.Listen()
 
-	blockWatcher := tz.NewBlockWatcher(c)
-	contractWatcher := tz.NewContractWatcher(c, blockWatcher, depositAddress)
+	headBlock, err := c.GetHeadBlock(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	go blockWatcher.Run(ctx)
-	go contractWatcher.Run(ctx)
+	blockWatcher := tz.NewBlockWatcher(c, headBlock.Hash)
+	contractWatcher := tz.NewContractWatcher(c, depositAddress)
+
+	blocks := make(chan tezos.BlockHash)
+	transactions := make(chan *rpc.Transaction)
+
+	go blockWatcher.Run(ctx, blocks)
+	go contractWatcher.Run(ctx, transactions, blocks)
 
 	pk, err := tezos.ParsePrivateKey(config.Wallet.PrivateKey)
 
@@ -82,7 +90,7 @@ func RunTezosSide(config *tz.TezosConfig) (*Tezos, error) {
 		QuorumContract:     &contr,
 		Client:             c,
 		Wallet:             w,
-		DepositTransaction: contractWatcher.Transactions,
+		DepositTransaction: transactions,
 	}, nil
 }
 
@@ -135,7 +143,6 @@ func main() {
 	}
 
 	tezosClient, err := RunTezosSide(&config.TezosConfig)
-	log.Println(tezosClient.Client.ChainId)
 
 	if err != nil {
 		log.Printf("err: %s\n", err)
@@ -159,6 +166,7 @@ func main() {
 			var msg ever.UnwrapTokenEvent
 			err := json.Unmarshal(event.Value, &msg)
 			if err != nil {
+				// TODO: Should reject transaction
 				log.Printf("err: %s\n", err)
 				continue
 			}
@@ -166,6 +174,7 @@ func main() {
 			transaction, err := tz.NewUnwrapTransactionFromEvent(&msg)
 
 			if err != nil {
+				// TODO: Should reject transacсть под новый закон о фейках и запрещает загружать ролики и вести стримtion
 				log.Printf("err: %s\n", err)
 				continue
 			}
