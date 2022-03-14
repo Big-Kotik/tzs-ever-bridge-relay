@@ -9,18 +9,17 @@ import (
 
 type BlockWatcher struct {
 	client    *rpc.Client
-	Hashes    chan tezos.BlockHash
 	lastBlock tezos.BlockHash
 }
 
-func NewBlockWatcher(client *rpc.Client) *BlockWatcher {
-	// TODO: Block hash
-	return &BlockWatcher{client, make(chan tezos.BlockHash), tezos.BlockHash{}}
+func NewBlockWatcher(client *rpc.Client, headBlock tezos.BlockHash) *BlockWatcher {
+	return &BlockWatcher{client, headBlock}
 }
 
-func (bw *BlockWatcher) Run(ctx context.Context) {
+func (bw *BlockWatcher) Run(ctx context.Context, blockHashes chan<- tezos.BlockHash) {
 	mon := rpc.NewBlockHeaderMonitor()
 	defer mon.Close()
+	defer close(blockHashes)
 
 	if err := bw.client.MonitorBlockHeader(ctx, mon); err != nil {
 		log.Fatalln(err)
@@ -31,9 +30,9 @@ func (bw *BlockWatcher) Run(ctx context.Context) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-		log.Println(head.Hash)
+		log.Printf("new block: %s\n", head.Hash)
 
-		bw.Hashes <- head.Hash
+		blockHashes <- head.Hash
 		bw.lastBlock = head.Hash
 	}
 }
@@ -43,34 +42,30 @@ func (bw *BlockWatcher) GetLastBlock() tezos.BlockHash {
 }
 
 type ContractWatcher struct {
-	client       *rpc.Client
-	blockWatcher *BlockWatcher
-	Transactions chan *rpc.Transaction
-	address      tezos.Address
+	client  *rpc.Client
+	address tezos.Address
 }
 
-func NewContractWatcher(client *rpc.Client, blockWatcher *BlockWatcher, address tezos.Address) *ContractWatcher {
-	return &ContractWatcher{client, blockWatcher, make(chan *rpc.Transaction), address}
+func NewContractWatcher(client *rpc.Client, address tezos.Address) *ContractWatcher {
+	return &ContractWatcher{client, address}
 }
 
-func (cw *ContractWatcher) Run(ctx context.Context) {
+func (cw *ContractWatcher) Run(ctx context.Context, transactions chan<- *rpc.Transaction, blockHashes <-chan tezos.BlockHash) {
+	defer close(transactions)
 	for {
-		blockHash := <-cw.blockWatcher.Hashes
+		blockHash := <-blockHashes
 
 		operations, err := cw.client.GetBlockOperations(ctx, blockHash)
 
 		if err != nil {
-			log.Fatalln(err)
+			log.Printf("err: %s\n", err)
 		}
 
-		for i := range operations {
-			for _, operation := range operations[i] {
+		for layer := range operations {
+			for _, operation := range operations[layer] {
 				for _, content := range operation.Contents {
-					if content.Kind() == tezos.OpTypeTransaction {
-						transaction := content.(*rpc.Transaction)
-						if transaction.Destination.String() == cw.address.String() {
-							cw.Transactions <- transaction
-						}
+					if transaction, ok := content.(*rpc.Transaction); ok && &transaction.Destination == &cw.address {
+						transactions <- transaction
 					}
 				}
 			}
