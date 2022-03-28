@@ -1,6 +1,6 @@
 package tezos
 
-type TezosConfig struct {
+type Config struct {
 	Server struct {
 		TezosURL string `yaml:"URL"`
 	} `yaml:"server"`
@@ -10,5 +10,5 @@ type TezosConfig struct {
 	Contracts struct {
 		QuorumAddress  string `yaml:"quorumAddress"`
 		DepositAddress string `yaml:"depositAddress"`
-	} `yaml:"сontracts"`
+	} `yaml:"contracts"`
 }

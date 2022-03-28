@@ -6,20 +6,23 @@ import (
 	"blockwatch.cc/tzgo/tezos"
 	"context"
 	"encoding/json"
-	"fmt"
+	shell "github.com/ipfs/go-ipfs-api"
 	goton "github.com/move-ton/ton-client-go"
 	"github.com/move-ton/ton-client-go/domain"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	ever "tez-ton-bridge-relay/app/everscale"
+	"tez-ton-bridge-relay/app/ipfs"
 	tz "tez-ton-bridge-relay/app/tezos"
 )
 
 type Config struct {
-	TezosConfig tz.TezosConfig       `yaml:"tezosConfig"`
-	EverConfig  ever.EverscaleConfig `yaml:"everscaleConfig"`
+	TezosConfig tz.Config   `yaml:"tezosConfig"`
+	EverConfig  ever.Config `yaml:"everscaleConfig"`
+	IPFSConfig  ipfs.Config `yaml:"ipfsConfig"`
 }
 
 func (c *Config) GetConfigFromFile(file string) error {
@@ -30,6 +33,7 @@ func (c *Config) GetConfigFromFile(file string) error {
 	if err := yaml.Unmarshal(yamlFile, c); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -40,7 +44,7 @@ type Tezos struct {
 	DepositTransaction chan *rpc.Transaction
 }
 
-func RunTezosSide(config *tz.TezosConfig) (*Tezos, error) {
+func RunTezosSide(config *tz.Config) (*Tezos, error) {
 	ctx := context.TODO()
 
 	depositAddress := tezos.MustParseAddress(config.Contracts.DepositAddress)
@@ -99,7 +103,7 @@ type Everscale struct {
 	Events <-chan *domain.DecodedMessageBody
 }
 
-func RunEverSide(config *ever.EverscaleConfig) (*Everscale, error) {
+func RunEverSide(config *ever.Config) (*Everscale, error) {
 	ton, err := goton.NewTon("", config.Servers)
 
 	if err != nil {
@@ -158,10 +162,18 @@ func main() {
 
 	defer everscale.Ton.Client.Destroy()
 
+	sh := shell.NewShell(config.IPFSConfig.Server)
+
 	for {
 		select {
 		case transaction := <-tezosClient.DepositTransaction:
-			fmt.Println(tz.ParseFromTransaction(transaction))
+			log.Printf("Transaction: %s", tz.ParseFromTransaction(transaction).String())
+			cid, err := sh.Add(strings.NewReader(tz.ParseFromTransaction(transaction).String()))
+			if err != nil {
+				log.Printf("err: %s\n", err)
+				continue
+			}
+			log.Printf("IPFS Hash %s\n", cid)
 		case event := <-everscale.Events:
 			var msg ever.UnwrapTokenEvent
 			err := json.Unmarshal(event.Value, &msg)
@@ -174,7 +186,7 @@ func main() {
 			transaction, err := tz.NewUnwrapTransactionFromEvent(&msg)
 
 			if err != nil {
-				// TODO: Should reject transacсть под новый закон о фейках и запрещает загружать ролики и вести стримtion
+				// TODO: Should reject transaction
 				log.Printf("err: %s\n", err)
 				continue
 			}

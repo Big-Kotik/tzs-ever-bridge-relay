@@ -64,7 +64,7 @@ func (cw *ContractWatcher) Run(ctx context.Context, transactions chan<- *rpc.Tra
 		for layer := range operations {
 			for _, operation := range operations[layer] {
 				for _, content := range operation.Contents {
-					if transaction, ok := content.(*rpc.Transaction); ok && &transaction.Destination == &cw.address {
+					if transaction, ok := content.(*rpc.Transaction); ok && transaction.Destination.String() == cw.address.String() {
 						transactions <- transaction
 					}
 				}

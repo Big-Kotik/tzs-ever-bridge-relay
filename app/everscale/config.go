@@ -1,6 +1,6 @@
 package everscale
 
-type EverscaleConfig struct {
+type Config struct {
 	Servers   []string `yaml:"servers"`
 	Contracts struct {
 		DepositContract struct {

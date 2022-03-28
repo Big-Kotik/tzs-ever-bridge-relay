@@ -4,17 +4,20 @@ tezosConfig:
 
   wallet:
     #Alice private key, don't use it in your wallet
-    privateKey: "edsk3QoqBuvdamxouPhin7swCvkQNgq4jP5KZPbwWNnwdZpSpJiEbq"
+    privateKey: "edsk2ssz9Yx48dVpPCMMDc2aNGDumoqmToirUXGaBnoydtRbaj1BCm"
 
-  сontracts:
-    quorumAddress: "KT1KDswcMU81pJbLJfWh4JtjNXuo8fd2tbqL"
-    depositAddress: "KT1KDswcMU81pJbLJfWh4JtjNXuo8fd2tbqL"
+  contracts:
+    quorumAddress: "KT1J7wioz6tqPbk4b6vyeHR8mntdrT3QJ3yx"
+    depositAddress: "KT1Hy9LYKs1Ja4EN6HBdhpFQkJWvAQWpUJEB"
+
+ipfsConfig:
+  server: "localhost:5001"
 
 everscaleConfig:
   servers:
-    - "http://localhost"
-    - "http://0.0.0.0"
-    - "http://127.0.0.1"
+    - "http://localhost:3412"
+    - "http://0.0.0.0:3412"
+    - "http://127.0.0.1:3412"
 
   contracts:
     depositContract:
