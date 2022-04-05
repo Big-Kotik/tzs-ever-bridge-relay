@@ -3,16 +3,17 @@ package tezos
 import (
 	"blockwatch.cc/tzgo/rpc"
 	"fmt"
-	"log"
+	"math/big"
 )
 
 type WrapTransaction struct {
 	amount uint64
 	to     string
+	To     *big.Int
 }
 
-func (t *WrapTransaction) String() string {
-	return fmt.Sprintf("%d %s", t.amount, t.to)
+func (t *WrapTransaction) ToHashFormat() string {
+	return fmt.Sprintf("0:%s-%d", t.to, t.amount)
 }
 
 func ParseFromTransaction(transaction *rpc.Transaction) *WrapTransaction {
@@ -23,9 +24,12 @@ func ParseFromTransaction(transaction *rpc.Transaction) *WrapTransaction {
 	switch transaction.Parameters.Entrypoint {
 	case "default":
 		wt.to = transaction.Parameters.Value.Args[0].Args[0].String
+		wt.To = new(big.Int)
+		wt.To.SetString(wt.to, 16)
 	case "deposit":
-		log.Println(transaction.Parameters.Value.String)
 		wt.to = transaction.Parameters.Value.String
+		wt.To = new(big.Int)
+		wt.To.SetString(transaction.Parameters.Value.String, 16)
 	default:
 		return wt
 	}

@@ -7,8 +7,8 @@ tezosConfig:
     privateKey: "edsk2ssz9Yx48dVpPCMMDc2aNGDumoqmToirUXGaBnoydtRbaj1BCm"
 
   contracts:
-    quorumAddress: "KT1J7wioz6tqPbk4b6vyeHR8mntdrT3QJ3yx"
-    depositAddress: "KT1Hy9LYKs1Ja4EN6HBdhpFQkJWvAQWpUJEB"
+    quorumAddress: "KT1Q4WueKgWtBz2yFvFZN8hT63C3FYqxtqiZ"
+    depositAddress: "KT1V3AG34mWtuUE5DDrnyX1JSEayKuMpt71V"
 
 ipfsConfig:
   server: "localhost:5001"
@@ -18,8 +18,9 @@ everscaleConfig:
     - "http://localhost:3412"
     - "http://0.0.0.0:3412"
     - "http://127.0.0.1:3412"
-
+  signerPrivateKey: "6fef706751776d43c0277f76458e2ab32146b324991daf46f40c919a81f136fe"
+  signerPublicKey: "5bd8c119fcf53cf32878b0b961198858928464663465bcbfb1033bdd71d665a2"
   contracts:
     depositContract:
-      abi: "./test.abi.json"
-      address: "0:0744a77fba05e67b848068566f3d7c78de9eb68acd6fd894937ae85bad500a81"
+      abi: "./DemoTokenImpl.abi.json"
+      address: "0:a30fa0ae97a921beaef229f7352952e5de65f44bb340ebc4499bfd0e97064caa"

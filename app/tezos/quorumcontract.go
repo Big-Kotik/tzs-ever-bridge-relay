@@ -7,9 +7,9 @@ import (
 	"blockwatch.cc/tzgo/rpc"
 	"blockwatch.cc/tzgo/tezos"
 	"context"
-	"encoding/hex"
 	"log"
 	"math/big"
+	"strconv"
 	"tez-ton-bridge-relay/app/everscale"
 )
 
@@ -70,14 +70,10 @@ type UnwrapTransaction struct {
 }
 
 func NewUnwrapTransactionFromEvent(event *everscale.UnwrapTokenEvent) (*UnwrapTransaction, error) {
-	h, err := hex.DecodeString(event.Amount[2:])
+	log.Println(event)
+	val, err := strconv.Atoi(event.Amount)
 	if err != nil {
 		return nil, err
-	}
-	num := uint64(0)
-
-	for i, val := range h[24:] {
-		num += uint64(val) << (8 * (7 - i))
 	}
 
 	address, err := tezos.ParseAddress(event.Addr)
@@ -85,7 +81,7 @@ func NewUnwrapTransactionFromEvent(event *everscale.UnwrapTokenEvent) (*UnwrapTr
 		return nil, err
 	}
 
-	return &UnwrapTransaction{address, tezos.N(num)}, nil
+	return &UnwrapTransaction{address, tezos.N(val)}, nil
 }
 
 func (qc *QuorumContract) SendApprove(transaction UnwrapTransaction) {

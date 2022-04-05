@@ -5,13 +5,16 @@ import (
 	"blockwatch.cc/tzgo/rpc"
 	"blockwatch.cc/tzgo/tezos"
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	shell "github.com/ipfs/go-ipfs-api"
 	goton "github.com/move-ton/ton-client-go"
 	"github.com/move-ton/ton-client-go/domain"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"os"
 	"strings"
 	ever "tez-ton-bridge-relay/app/everscale"
@@ -167,12 +170,44 @@ func main() {
 	for {
 		select {
 		case transaction := <-tezosClient.DepositTransaction:
-			log.Printf("Transaction: %s", tz.ParseFromTransaction(transaction).String())
-			cid, err := sh.Add(strings.NewReader(tz.ParseFromTransaction(transaction).String()))
+			parsed := tz.ParseFromTransaction(transaction)
+
+			encoded := base64.StdEncoding.EncodeToString([]byte(parsed.ToHashFormat()))
+
+			hashed, err := everscale.Ton.Crypto.Sha256(&domain.ParamsOfHash{Data: encoded})
+			if err != nil {
+				log.Printf("err: %v", err)
+				continue
+			}
+
+			fmt.Println(hashed.Hash)
+
+			bi := new(big.Int)
+			bi.SetString(hashed.Hash, 16)
+
+			log.Println(bi.Bytes())
+
+			res, err := everscale.Ton.Crypto.Sign(&domain.ParamsOfSign{
+				Unsigned: base64.StdEncoding.EncodeToString(bi.Bytes()),
+				Keys:     &domain.KeyPair{Public: config.EverConfig.SignerPublicKey, Secret: config.EverConfig.SignerPrivateKey},
+			})
+
+			if err != nil {
+				log.Printf("err: %v", err)
+				continue
+			}
+
+			log.Printf("Signature: %v", res.Signature)
+			log.Printf("Bool: %s", parsed.To.Text(2))
+
+			log.Printf("Transaction: %s", tz.ParseFromTransaction(transaction).ToHashFormat())
+
+			cid, err := sh.Add(strings.NewReader(res.Signature))
 			if err != nil {
 				log.Printf("err: %s\n", err)
 				continue
 			}
+
 			log.Printf("IPFS Hash %s\n", cid)
 		case event := <-everscale.Events:
 			var msg ever.UnwrapTokenEvent
@@ -190,7 +225,7 @@ func main() {
 				log.Printf("err: %s\n", err)
 				continue
 			}
-
+			log.Println(transaction)
 			go tezosClient.QuorumContract.SendApprove(*transaction)
 		}
 	}

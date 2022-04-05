@@ -8,4 +8,6 @@ type Config struct {
 			Address string `yaml:"address"`
 		} `yaml:"depositContract"`
 	} `yaml:"contracts"`
+	SignerPrivateKey string `yaml:"signerPrivateKey"`
+	SignerPublicKey  string `yaml:"signerPublicKey"`
 }

@@ -1,0 +1,61 @@
+{
+	"ABI version": 2,
+	"version": "2.2",
+	"header": ["pubkey", "time"],
+	"functions": [
+		{
+			"name": "constructor",
+			"inputs": [
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "mint",
+			"inputs": [
+				{"name":"_value","type":"uint128"},
+				{"name":"_recepient","type":"address"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "burn",
+			"inputs": [
+				{"name":"_value","type":"uint128"},
+				{"name":"_recepient","type":"address"},
+				{"name":"destination","type":"string"}
+			],
+			"outputs": [
+			]
+		},
+		{
+			"name": "setQuorumAddress",
+			"inputs": [
+				{"name":"_quorumAddress","type":"address"}
+			],
+			"outputs": [
+			]
+		}
+	],
+	"data": [
+	],
+	"events": [
+		{
+			"name": "UnwrapTokenEvent",
+			"inputs": [
+				{"name":"addr","type":"string"},
+				{"name":"amount","type":"uint128"}
+			],
+			"outputs": [
+			]
+		}
+	],
+	"fields": [
+		{"name":"_pubkey","type":"uint256"},
+		{"name":"_timestamp","type":"uint64"},
+		{"name":"_constructorFlag","type":"bool"},
+		{"name":"quorumAddress_","type":"address"},
+		{"name":"ledger_","type":"map(address,uint128)"}
+	]
+}
