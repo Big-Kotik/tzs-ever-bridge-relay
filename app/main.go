@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	shell "github.com/ipfs/go-ipfs-api"
 	goton "github.com/move-ton/ton-client-go"
 	"github.com/move-ton/ton-client-go/domain"
@@ -180,12 +179,8 @@ func main() {
 				continue
 			}
 
-			fmt.Println(hashed.Hash)
-
 			bi := new(big.Int)
 			bi.SetString(hashed.Hash, 16)
-
-			log.Println(bi.Bytes())
 
 			res, err := everscale.Ton.Crypto.Sign(&domain.ParamsOfSign{
 				Unsigned: base64.StdEncoding.EncodeToString(bi.Bytes()),
@@ -198,7 +193,6 @@ func main() {
 			}
 
 			log.Printf("Signature: %v", res.Signature)
-			log.Printf("Bool: %s", parsed.To.Text(2))
 
 			log.Printf("Transaction: %s", tz.ParseFromTransaction(transaction).ToHashFormat())
 
